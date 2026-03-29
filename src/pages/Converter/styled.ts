@@ -51,6 +51,32 @@ export const GuideButton = styled.button`
   }
 `;
 
+export const FloatingSupportButton = styled.button`
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: #f43f5e;
+  color: #fff;
+  border: none;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #e11d48;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(244, 63, 94, 0.6);
+  }
+`;
+
 export const StepIndicator = styled.div`
   display: flex;
   justify-content: center;
@@ -215,6 +241,15 @@ export const StyledButton = styled.button<{ primary?: boolean; secondary?: boole
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+`;
+
+export const PostypeButton = styled(StyledButton)`
+  background: #000000;
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    background: #000000;
   }
 `;
 

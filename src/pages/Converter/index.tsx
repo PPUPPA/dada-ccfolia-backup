@@ -1,9 +1,15 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
-import { Download, Upload, Copy, RefreshCw, Settings as SettingsIcon, CheckCircle2, HelpCircle, X, ClipboardCheck } from 'lucide-react';
+import { Download, Upload, Copy, RefreshCw, Settings as SettingsIcon, CheckCircle2, HelpCircle, X, ClipboardCheck, Heart } from 'lucide-react';
 import { SketchPicker } from 'react-color';
 import { getExtractedCharacters, generateDadaHTMLParts } from '../../utils/converter';
 import { ICCFoliaMessage, ICharacter, ISettings, ITabStyle } from '../../interfaces';
 import * as S from './styled';
+
+const SUPPORT_LINKS = {
+  paypal: "", // 페이팔 링크
+  kakaopay: "https://open.kakao.com/o/sBzTaM3e", // 카카오 오픈채팅 링크
+  postype: "https://www.postype.com/@abekobe/post/21964340", // 포스타입
+};
 
 const Converter: React.FC = () => {
   const [step, setStep] = useState<number>(1);
@@ -33,6 +39,7 @@ const Converter: React.FC = () => {
   const [activePart, setActivePart] = useState<number>(0);
   const [copiedPart, setCopiedPart] = useState<number>(-1);
   const [showGuide, setShowGuide] = useState<boolean>(false);
+  const [showSupport, setShowSupport] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortMessagesChronologically = (msgs: ICCFoliaMessage[]): ICCFoliaMessage[] => {
@@ -282,6 +289,50 @@ const Converter: React.FC = () => {
     </S.ModalOverlay>
   );
 
+  const renderSupportModal = () => (
+    <S.ModalOverlay onClick={() => setShowSupport(false)}>
+      <S.ModalContent onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+        <S.ModalHeader>
+          <h2>💖 창작자 후원하기</h2>
+          <S.StyledButton secondary onClick={() => setShowSupport(false)} style={{ padding: '0.5rem', width: 'auto' }}><X size={20} /></S.StyledButton>
+        </S.ModalHeader>
+        <S.ModalBody style={{ textAlign: 'center' }}>
+          <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>유용하게 사용하고 계신가요?</h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.6' }}>
+            앞으로도 편의를 위한 툴을 개발할 예정입니다💦<br />
+            지속적인 개발과 작업자의 당 충전을 위해<br />음료 한 잔 사주시면 큰 힘이 됩니다! 💖
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {SUPPORT_LINKS.paypal && (
+              <a href={SUPPORT_LINKS.paypal} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <S.StyledButton primary style={{ width: '100%', padding: '1rem' }}>
+                  💳 페이팔(PayPal)로 후원
+                </S.StyledButton>
+              </a>
+            )}
+            {SUPPORT_LINKS.kakaopay && (
+              <a href={SUPPORT_LINKS.kakaopay} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <S.StyledButton primary style={{ width: '100%', padding: '1rem', background: '#FEE500', color: '#000' }}>
+                  💬 카카오톡 오픈채팅 송금
+                </S.StyledButton>
+              </a>
+            )}
+            {SUPPORT_LINKS.postype && (
+              <a href={SUPPORT_LINKS.postype} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <S.PostypeButton style={{ width: '100%', padding: '1rem' }}>
+                  📓 포스타입 후원(구매)
+                </S.PostypeButton>
+              </a>
+            )}
+            {!SUPPORT_LINKS.paypal && !SUPPORT_LINKS.kakaopay && !SUPPORT_LINKS.postype && (
+              <p style={{ color: 'var(--text-secondary)' }}>아직 후원 링크가 등록되지 않았습니다.</p>
+            )}
+          </div>
+        </S.ModalBody>
+      </S.ModalContent>
+    </S.ModalOverlay>
+  );
+
   return (
     <S.ConverterContainer>
       <S.Header>
@@ -298,6 +349,11 @@ const Converter: React.FC = () => {
       </S.Header>
 
       {showGuide && renderGuideModal()}
+      {showSupport && renderSupportModal()}
+
+      <S.FloatingSupportButton onClick={() => setShowSupport(true)}>
+        <Heart size={20} /> 후원하기
+      </S.FloatingSupportButton>
 
       <S.StepIndicator>
         <S.Step active={step >= 1}>1. 로그 불러오기</S.Step>
