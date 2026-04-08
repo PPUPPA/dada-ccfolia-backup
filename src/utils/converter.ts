@@ -8,13 +8,14 @@ export function getExtractedCharacters(messages: ICCFoliaMessage[]): ICharacter[
     channels: Set<string>;
   }>();
 
-  messages.forEach((msg) => {
+  messages.forEach((msg: any) => {
+    // Firestore 형식과 플랫 형식을 모두 체크
     const fields = msg.fields;
-    if (!fields || !fields.name || !fields.name.stringValue) return;
+    const name = fields?.name?.stringValue || msg.name;
+    if (!name) return;
 
-    const name = fields.name.stringValue;
-    const imageUrl = fields.imageUrl?.stringValue || fields.iconUrl?.stringValue || '';
-    const channel = fields.channel?.stringValue || '';
+    const imageUrl = fields?.imageUrl?.stringValue || fields?.iconUrl?.stringValue || msg.imageUrl || msg.iconUrl || '';
+    const channel = fields?.channel?.stringValue || msg.channel || '';
 
     if (!charMap.has(name)) {
       let defaultType = 'player';
@@ -34,7 +35,7 @@ export function getExtractedCharacters(messages: ICCFoliaMessage[]): ICharacter[
     } else {
       const charObj = charMap.get(name)!;
       if (!charObj.imageUrl && imageUrl) charObj.imageUrl = imageUrl;
-      charObj.channels.add(channel);
+      if (channel) charObj.channels.add(channel);
     }
   });
 
@@ -54,11 +55,14 @@ export function generateDadaHTMLParts(messages: ICCFoliaMessage[], settings: ISe
   const charTypeMap: Record<string, string> = {};
   characters.forEach(c => { charTypeMap[c.name] = c.type; });
 
-  const validMessages = sortedMessages.filter(msg => {
+  const validMessages = sortedMessages.filter((msg: any) => {
     const fields = msg.fields;
-    if (!fields || !fields.text || !fields.text.stringValue) return false;
-    const channel = fields.channel?.stringValue || '';
-    const name = fields.name?.stringValue || '';
+    const text = fields?.text?.stringValue || msg.text;
+    if (!text) return false;
+
+    const channel = fields?.channel?.stringValue || msg.channel || '';
+    const name = fields?.name?.stringValue || msg.name || '';
+    
     if (settings.hideOtherTab && channel === 'other') return false;
     const type = charTypeMap[name] || 'exclude';
     if (type === 'exclude') return false;
@@ -69,13 +73,13 @@ export function generateDadaHTMLParts(messages: ICCFoliaMessage[], settings: ISe
   const RET = '\n';
 
   if (validMessages.length === 0) {
-    return [`<div class="ccfolia_wrap has_theme">\n  <h1 class="session-title">${settings.sessionTitle}</h1>\n  <div class="tab">\n    <p style="padding: 2rem; color: #fff;">출력할 로그가 없습니다.</p>\n  </div>\n</div>\n`];
+    return [`<div class="ccfolia_wrap has_theme${settings.defaultTheme === 'light' ? ' is_theme-light' : ''}">\n  <h1 class="session-title">${settings.sessionTitle}</h1>\n  <div class="tab">\n    <p style="padding: 2rem; color: #fff;">출력할 로그가 없습니다.</p>\n  </div>\n</div>\n`];
   }
 
   for (let i = 0; i < validMessages.length; i += chunkSize) {
     const chunkMsgs = validMessages.slice(i, i + chunkSize);
     
-    let html = `<div class="ccfolia_wrap has_theme">\n`;
+    let html = `<div class="ccfolia_wrap has_theme${settings.defaultTheme === 'light' ? ' is_theme-light' : ''}">\n`;
     html += `  <h1 class="session-title">${settings.sessionTitle}</h1>\n`;
     html += `  <div class="tab">\n`;
 
@@ -93,18 +97,19 @@ export function generateDadaHTMLParts(messages: ICCFoliaMessage[], settings: ISe
       return result;
     };
 
-    chunkMsgs.forEach((msg) => {
+    chunkMsgs.forEach((msg: any) => {
       const fields = msg.fields;
-      const text = fields.text.stringValue;
-      const name = fields.name.stringValue;
-      const channel = fields.channel.stringValue;
-      const color = fields.color?.stringValue || '#888888';
+      const text = fields?.text?.stringValue || msg.text || '';
+      const name = fields?.name?.stringValue || msg.name || '';
+      const channel = fields?.channel?.stringValue || msg.channel || '';
+      const color = fields?.color?.stringValue || msg.color || '#888888';
       const type = charTypeMap[name] || 'exclude';
 
       let rollVal = '';
       try {
-        if (fields.extend?.mapValue?.fields?.roll?.mapValue?.fields?.result?.stringValue) {
-          rollVal = fields.extend.mapValue.fields.roll.mapValue.fields.result.stringValue.split(/\r?\n/).join('');
+        const rollResult = fields?.extend?.mapValue?.fields?.roll?.mapValue?.fields?.result?.stringValue || msg.rollResult;
+        if (rollResult) {
+          rollVal = rollResult.split(/\r?\n/).join('');
           rollVal = '<br>' + RET + '    ' + rollVal;
         }
       } catch(e) {
@@ -127,7 +132,8 @@ export function generateDadaHTMLParts(messages: ICCFoliaMessage[], settings: ISe
 
       const plIndex = characters.findIndex(c => c.name === name);
       const customImgUrl = plIndex >= 0 ? characters[plIndex].customImgUrl : '';
-      const imgUrl = customImgUrl || fields.imageUrl?.stringValue || fields.iconUrl?.stringValue || '';
+      const messageImgUrl = fields?.imageUrl?.stringValue || fields?.iconUrl?.stringValue || msg.imageUrl || msg.iconUrl || '';
+      const imgUrl = customImgUrl || messageImgUrl;
 
       if (type === 'player' || type === 'npc') {
         if (previousName === name && previousTab === channel && previousImgUrl === imgUrl) {

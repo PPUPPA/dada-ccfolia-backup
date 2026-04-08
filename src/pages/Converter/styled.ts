@@ -146,7 +146,59 @@ export const FormGroup = styled.div`
     color: var(--text-secondary);
     font-size: 0.85rem;
     margin-top: 0.5rem;
+    line-height: 1.5;
   }
+`;
+
+export const ThemeToggleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+`;
+
+export const ThemeToggleSwitch = styled.div<{ activeTheme: 'dark' | 'light' }>`
+  position: relative;
+  width: 64px;
+  height: 32px;
+  background: ${props => props.activeTheme === 'dark' ? '#2d2d30' : '#e0f2fe'};
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid ${props => props.activeTheme === 'dark' ? '#4a4a4e' : '#cbd5e1'};
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+
+  &:hover {
+    border-color: var(--accent-color);
+  }
+`;
+
+export const ThemeToggleKnob = styled.div<{ activeTheme: 'dark' | 'light' }>`
+  width: 24px;
+  height: 24px;
+  background: ${props => props.activeTheme === 'dark' ? 'var(--accent-color)' : '#63a7ff'};
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: ${props => props.activeTheme === 'dark' ? 'translateX(30px)' : 'translateX(0)'};
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+export const ThemeToggleLabel = styled.span<{ active: boolean }>`
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: ${props => props.active ? 'var(--text-primary)' : 'var(--text-secondary)'};
+  transition: color 0.2s ease;
 `;
 
 export const InputRow = styled.div`
@@ -297,6 +349,14 @@ export const ModalHeader = styled.div`
 export const ModalBody = styled.div`
   padding: 2rem;
   overflow-y: auto;
+`;
+
+export const ModalFooter = styled.div`
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 export const GuideSection = styled.section`

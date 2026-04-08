@@ -1,5 +1,5 @@
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { Download, Upload, Copy, RefreshCw, Settings as SettingsIcon, CheckCircle2, HelpCircle, X, ClipboardCheck, Heart } from 'lucide-react';
+import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
+import { Download, Upload, Copy, RefreshCw, Settings as SettingsIcon, CheckCircle2, HelpCircle, X, ClipboardCheck, Heart, Sun, Moon, Eye, CloudDownload } from 'lucide-react';
 import { SketchPicker } from 'react-color';
 import { getExtractedCharacters, generateDadaHTMLParts } from '../../utils/converter';
 import { ICCFoliaMessage, ICharacter, ISettings, ITabStyle } from '../../interfaces';
@@ -32,7 +32,8 @@ const Converter: React.FC = () => {
     chunkSize: 40000,
     tabStyles: [
       { tab: 'info', color: '#c9dbfe', customStyle: 'padding-left: 8px !important; padding-right: 8px !important; font-size: .95em; font-style: normal; line-height: 1.6;' }
-    ]
+    ],
+    defaultTheme: 'dark'
   });
 
   const [outputParts, setOutputParts] = useState<string[]>([]);
@@ -40,7 +41,22 @@ const Converter: React.FC = () => {
   const [copiedPart, setCopiedPart] = useState<number>(-1);
   const [showGuide, setShowGuide] = useState<boolean>(false);
   const [showSupport, setShowSupport] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [previewContent, setPreviewContent] = useState<string>('');
+  const [previewThemeOverride, setPreviewThemeOverride] = useState<'dark' | 'light' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showPreview) {
+      const wrap = document.querySelector('.preview-container .ccfolia_wrap');
+      const theme = previewThemeOverride || settings.defaultTheme;
+      if (theme === 'light') {
+        wrap?.classList.add('is_theme-light');
+      } else {
+        wrap?.classList.remove('is_theme-light');
+      }
+    }
+  }, [showPreview, previewContent, previewThemeOverride, settings.defaultTheme]);
 
   const sortMessagesChronologically = (msgs: ICCFoliaMessage[]): ICCFoliaMessage[] => {
     return [...msgs].sort((a, b) => {
@@ -211,8 +227,24 @@ const Converter: React.FC = () => {
     setTimeout(() => setCopiedPart(-1), 2000);
   };
 
+  const handleClickRestart = () => {
+    if (window.confirm('모든 진행 상황을 초기화하고 처음으로 돌아가시겠습니까?')) {
+      setStep(1);
+      setRoomId('');
+      setMessages([]);
+      setCharacters([]);
+      setFetchSuccess(false);
+      setUploadedFileName('');
+      setIsDownloaded(false);
+      setError('');
+      setOutputParts([]);
+    }
+  };
+
   const handleClickDownloadPart = (idx: number, partHtml: string) => {
-    const fullHtml = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<title>${settings.sessionTitle}</title>\n<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@400;500;700&display=swap" rel="stylesheet">\n<link rel="stylesheet" href="https://tistory1.daumcdn.net/tistory/3320437/skin/images/dada_ccfolia.css">\n<style>body { background-color: #2b2b2b; color: #fff; padding: 2rem; }</style>\n</head>\n<body>\n${partHtml}\n</body>\n</html>`;
+    const isLight = settings.defaultTheme === 'light';
+    const bodyStyle = isLight ? 'background-color: #ffffff; color: #000; padding: 2rem;' : 'background-color: #2b2b2b; color: #fff; padding: 2rem;';
+    const fullHtml = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<title>${settings.sessionTitle}</title>\n<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@400;500;700&display=swap" rel="stylesheet">\n<link rel="stylesheet" href="https://tistory1.daumcdn.net/tistory/3320437/skin/images/dada_ccfolia.css">\n<style>body { ${bodyStyle} }</style>\n</head>\n<body>\n${partHtml}\n</body>\n</html>`;
     const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -333,6 +365,43 @@ const Converter: React.FC = () => {
     </S.ModalOverlay>
   );
 
+  const renderPreviewModal = () => (
+    <S.ModalOverlay onClick={() => setShowPreview(false)}>
+      <S.ModalContent onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%', height: '90vh' }}>
+        <S.ModalHeader>
+          <h2>미리보기</h2>
+          <S.StyledButton secondary onClick={() => setShowPreview(false)} style={{ padding: '0.5rem', width: 'auto' }}><X size={20} /></S.StyledButton>
+        </S.ModalHeader>
+        <S.ModalBody 
+          style={{ 
+            padding: '0', 
+            background: '#1e1e20',
+          }}
+        >
+          <div 
+             className="preview-container" 
+             style={{ padding: '2rem' }}
+             onClick={(e) => {
+               const target = e.target as HTMLElement;
+               const btn = target.closest('.btn-theme');
+               if (btn) {
+                 if (btn.classList.contains('is_light')) {
+                   setPreviewThemeOverride('light');
+                 } else {
+                   setPreviewThemeOverride('dark');
+                 }
+               }
+             }}
+             dangerouslySetInnerHTML={{ __html: previewContent }} 
+          />
+        </S.ModalBody>
+        <S.ModalFooter>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>※ 실제 티스토리 등의 백업 환경과 폰트 등이 일부 다를 수 있습니다.</p>
+        </S.ModalFooter>
+      </S.ModalContent>
+    </S.ModalOverlay>
+  );
+
   return (
     <S.ConverterContainer>
       <S.Header>
@@ -350,6 +419,7 @@ const Converter: React.FC = () => {
 
       {showGuide && renderGuideModal()}
       {showSupport && renderSupportModal()}
+      {showPreview && renderPreviewModal()}
 
       <S.FloatingSupportButton onClick={() => setShowSupport(true)}>
         <Heart size={20} /> 후원하기
@@ -376,7 +446,7 @@ const Converter: React.FC = () => {
                     onKeyDown={e => e.key === 'Enter' && callFetchRoom()}
                   />
                   <S.StyledButton onClick={callFetchRoom} disabled={loading || !roomId}>
-                    {loading ? <RefreshCw className="loading-spinner" size={20} style={{ animation: 'spin 1.5s linear infinite' }} /> : <Download size={20} />}
+                    {loading ? <RefreshCw className="loading-spinner" size={20} style={{ animation: 'spin 1.5s linear infinite' }} /> : <CloudDownload size={20} />}
                     가져오기
                   </S.StyledButton>
                 </S.InputRow>
@@ -448,19 +518,24 @@ const Converter: React.FC = () => {
             />
           </S.FormGroup>
 
-          <S.FormGroup style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-              <input 
-                 type="checkbox" 
-                 checked={settings.hideOtherTab} 
-                 onChange={e => setSettings({...settings, hideOtherTab: e.target.checked})} 
-                 style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)' }}
-              />
-              [Other] 탭 (잡담) 로그 제외하기
-            </label>
+          <S.FormGroup>
+            <label>테마 설정</label>
+            <S.ThemeToggleContainer>
+              <S.ThemeToggleLabel active={settings.defaultTheme === 'light'}>Light</S.ThemeToggleLabel>
+              <S.ThemeToggleSwitch 
+                activeTheme={settings.defaultTheme || 'dark'} 
+                onClick={() => setSettings({ ...settings, defaultTheme: settings.defaultTheme === 'dark' ? 'light' : 'dark' })}
+              >
+                <S.ThemeToggleKnob activeTheme={settings.defaultTheme || 'dark'}>
+                  {(settings.defaultTheme || 'dark') === 'dark' ? <Moon fill="currentColor" /> : <Sun fill="currentColor" />}
+                </S.ThemeToggleKnob>
+              </S.ThemeToggleSwitch>
+              <S.ThemeToggleLabel active={settings.defaultTheme === 'dark'}>Dark</S.ThemeToggleLabel>
+            </S.ThemeToggleContainer>
+            <p>출력될 로그의 기본 테마를 설정합니다. 출력된 로그의 테마 버튼을 통해 다른 테마로도 볼 수 있습니다.</p>
           </S.FormGroup>
 
-          <S.FormGroup style={{ marginBottom: '2.5rem' }}>
+          <S.FormGroup>
             <label>분할 출력 기준 (메시지 개수)</label>
             <input 
               type="number" 
@@ -473,6 +548,18 @@ const Converter: React.FC = () => {
             <p>
               이 개수마다 HTML 출력 결과물이 여러 파트로 나뉩니다. 값이 클수록 하나의 파트에 들어가는 분량이 많아집니다. (기본값: 40000)
             </p>
+          </S.FormGroup>
+          
+          <S.FormGroup style={{ marginBottom: '3rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input 
+                 type="checkbox" 
+                 checked={settings.hideOtherTab} 
+                 onChange={e => setSettings({...settings, hideOtherTab: e.target.checked})} 
+                 style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)' }}
+              />
+              [Other] 탭 (잡담) 로그 제외하기
+            </label>
           </S.FormGroup>
 
           <h2 style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>탭 스타일 (배경색) 지정</h2>
@@ -536,8 +623,8 @@ const Converter: React.FC = () => {
               })
               .map((char, index) => (
               <S.CharacterCard key={index}>
-                {char.imageUrl ? (
-                  <img src={char.imageUrl} alt={char.name} className="char-img" />
+                {(char.customImgUrl || char.imageUrl) ? (
+                  <img src={char.customImgUrl || char.imageUrl} alt={char.name} className="char-img" />
                 ) : (
                   <div className="char-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
                     👤
@@ -563,7 +650,7 @@ const Converter: React.FC = () => {
                     <option value="hl2">강조2 (hl2)</option>
                     <option value="exclude">출력 안 함 (제외)</option>
                   </select>
-                  {isHtmlMode && (
+                  {!char.imageUrl && (
                     <input 
                       type="text" 
                       placeholder="스탠딩 이미지 URL (선택)" 
@@ -578,6 +665,14 @@ const Converter: React.FC = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3rem', gap: '1rem' }}>
             <S.StyledButton secondary onClick={() => setStep(1)}>뒤로 가기</S.StyledButton>
+            <S.StyledButton secondary onClick={() => {
+               const parts = generateDadaHTMLParts(messages, settings, characters, 100000); // 전체 미리보기용으로 큰 청크
+               setPreviewContent(parts.join('\n'));
+               setPreviewThemeOverride(null); // 초기화
+               setShowPreview(true);
+            }}>
+              <Eye size={18} /> 미리보기
+            </S.StyledButton>
             <S.StyledButton onClick={handleClickGenerate}>변환하기 <CheckCircle2 size={18} /></S.StyledButton>
           </div>
         </S.Panel>
@@ -615,7 +710,14 @@ const Converter: React.FC = () => {
                       </S.StyledButton>
                       <S.ResultTextarea value={partHtml} readOnly />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                       <S.StyledButton secondary onClick={() => {
+                         setPreviewContent(partHtml);
+                         setPreviewThemeOverride(null); // 초기화
+                         setShowPreview(true);
+                       }} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
+                         <Eye size={16} /> 파트 {idx + 1} 미리보기
+                       </S.StyledButton>
                        <S.StyledButton secondary onClick={() => handleClickDownloadPart(idx, partHtml)} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
                          <Download size={16} /> 파트 {idx + 1} 파일 다운로드
                        </S.StyledButton>
@@ -626,7 +728,10 @@ const Converter: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem', gap: '1rem' }}>
+            <S.StyledButton onClick={handleClickRestart}>
+              <RefreshCw size={18} /> 처음으로 돌아가기
+            </S.StyledButton>
             <S.StyledButton secondary onClick={() => setStep(2)}>이전 단계 (설정 수정)</S.StyledButton>
           </div>
         </S.Panel>

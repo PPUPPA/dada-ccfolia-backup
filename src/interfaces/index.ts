@@ -43,4 +43,5 @@ export interface ISettings {
   hideOtherTab: boolean;
   chunkSize: number;
   tabStyles: ITabStyle[];
+  defaultTheme?: 'dark' | 'light';
 }
